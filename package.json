@@ -1,0 +1,24 @@
+{
+  "name": "superbia",
+  "version": "1.0.1",
+  "description": "Create powerful APIs.",
+  "homepage": "https://superbia.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iconshot/superbia.git"
+  },
+  "main": "index.js",
+  "keywords": [
+    "superbia",
+    "api",
+    "http"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-fileupload": "^1.2.1",
+    "fs-extra": "^10.0.0",
+    "ws": "^8.2.2"
+  }
+}
