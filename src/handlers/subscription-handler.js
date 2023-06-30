@@ -120,7 +120,7 @@ module.exports = (server) => {
             roomKeys = [roomKeys];
           }
 
-          // send a "subscribed" event
+          // client will handle this message as a "success" event
 
           connection.send(
             JSON.stringify({
