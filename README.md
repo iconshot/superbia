@@ -85,7 +85,7 @@ More on the `client` in the [superbia-client's page](https://github.com/iconshot
 
 ### Types
 
-Types can rather be objects, methods or arrays.
+Types can be objects, methods or arrays.
 
 ```js
 server.setType("User", { id: "ID", name: "String" });
