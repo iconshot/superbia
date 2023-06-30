@@ -30,9 +30,9 @@ server.setType("User", { id: "ID", name: "String" });
 
 ```js
 server
-  .setRequest("user")
+  .setRequest("user") // endpoint name
   .setParams({ id: "ID" })
-  .setResult("User")
+  .setResult("User") // type returned by resolver
   .setResolver((params) => {
     // async is also valid
 
