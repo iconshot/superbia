@@ -70,7 +70,7 @@ Now, using `superbia-client` we can access the endpoint just created.
 ```js
 const response = await client.request({ user: { id: "1" } });
 
-const data = response.parse();
+const data = response.data();
 
 const {
   user: { name },
