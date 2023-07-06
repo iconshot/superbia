@@ -95,7 +95,7 @@ server.setType("EvenNumber", (value) => value % 2 === 0);
 server.setType("PrimaryColor", ["red", "green", "blue"]);
 ```
 
-The default types are: `String`, `ID`, `Int`, `Float`, `Boolean`, `Date`, `Upload`.
+The basic types are: `String`, `ID`, `Int`, `Float`, `Boolean`, `Date`, `Upload`.
 
 ### Composition
 

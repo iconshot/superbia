@@ -54,8 +54,15 @@ class Server {
     return this.types.get(name);
   }
 
-  setType(name, type) {
+  setType(name, type, { includePagination = false } = {}) {
     this.types.set(name, type);
+
+    if (includePagination) {
+      this.types.set(`${name}Pagination`, {
+        nodes: `[${name}!]!`,
+        pageInfo: "PaginationPageInfo!",
+      });
+    }
   }
 
   hasType(name) {
@@ -80,6 +87,11 @@ class Server {
     this.setType("Upload", (value) => value instanceof Upload);
 
     this.setType("Date", (value) => value instanceof Date);
+
+    this.setType("PaginationPageInfo", {
+      hasNextPage: "Boolean!",
+      nextPageCursor: "String",
+    });
   }
 
   getRequest(name) {
