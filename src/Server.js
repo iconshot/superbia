@@ -14,6 +14,7 @@ const Publisher = require("./Publisher/Publisher");
 const requestHandler = require("./handlers/request-handler");
 const subscriptionHandler = require("./handlers/subscription-handler");
 
+const Type = require("./Type");
 const Endpoint = require("./Endpoint");
 const Upload = require("./Upload");
 
@@ -54,19 +55,20 @@ class Server {
     return this.types.get(name);
   }
 
-  setType(name, type, { includePagination = false } = {}) {
+  setType(name, matcher) {
+    const type = new Type(name, matcher, this);
+
     this.types.set(name, type);
 
-    if (includePagination) {
-      this.types.set(`${name}Pagination`, {
-        nodes: `[${name}!]!`,
-        pageInfo: "PaginationPageInfo!",
-      });
-    }
+    return type;
   }
 
   hasType(name) {
     return this.types.has(name);
+  }
+
+  deleteType(name) {
+    return this.types.delete(name);
   }
 
   setDefaultTypes() {
@@ -110,6 +112,10 @@ class Server {
     return this.requests.has(name);
   }
 
+  deleteRequest(name) {
+    this.requests.delete(name);
+  }
+
   getSubscription(name) {
     return this.subscriptions.get(name);
   }
@@ -124,6 +130,10 @@ class Server {
 
   hasSubscription(name) {
     return this.subscriptions.has(name);
+  }
+
+  deleteSubscription(name) {
+    this.subscriptions.delete(name);
   }
 
   getContext() {

@@ -3,16 +3,18 @@ class TypeHelper {
     const types = server.getTypes();
 
     for (const [name, type] of [...types.entries()]) {
-      if (typeof type === "function") {
+      const matcher = type.getMatcher();
+
+      if (typeof matcher === "function") {
         continue;
       }
 
-      if (Array.isArray(type)) {
+      if (Array.isArray(matcher)) {
         continue;
       }
 
-      for (const key in type) {
-        const value = type[key];
+      for (const key in matcher) {
+        const value = matcher[key];
 
         const parts = this.checkType(value);
 
@@ -102,24 +104,24 @@ class TypeHelper {
       const { isArray, isRequired, isArrayRequired, name } =
         this.checkType(paramType);
 
-      const type = server.getType(name);
+      const matcher = server.getType(name).getMatcher();
 
       const paramKey = `${preffixName !== null ? `${preffixName}.` : ""}${key}`;
 
       const parseValue = (value) => {
-        if (typeof type === "function") {
-          if (!type(value)) {
+        if (typeof matcher === "function") {
+          if (!matcher(value)) {
             throw new Error(
               `Parameter value for "${paramKey}" must be of type "${paramType}".`
             );
           }
-        } else if (Array.isArray(type)) {
-          if (!type.includes(value)) {
+        } else if (Array.isArray(matcher)) {
+          if (!matcher.includes(value)) {
             throw new Error(
               `Parameter value for "${paramKey}" must be of type "${paramType}".`
             );
           }
-        } else if (typeof type === "object") {
+        } else if (typeof matcher === "object") {
           if (typeof value !== "object") {
             throw new Error(
               `Parameter value for "${paramKey}" must be of type "${paramType}".`
@@ -128,7 +130,7 @@ class TypeHelper {
 
           // recursion
 
-          this.parseParams(value, type, server, name);
+          this.parseParams(value, matcher, server, name);
         }
       };
 
@@ -222,13 +224,13 @@ class TypeHelper {
     const { isArray, isRequired, isArrayRequired, name } =
       this.checkType(resultType);
 
-    const type = server.getType(name);
+    const matcher = server.getType(name).getMatcher();
 
     const parseValue = (value) => {
       let data = null;
 
-      if (typeof type === "function") {
-        if (!type(value)) {
+      if (typeof matcher === "function") {
+        if (!matcher(value)) {
           throw new Error(
             resultKey !== null
               ? `Result value for "${resultKey}" must be of type "${resultType}".`
@@ -237,8 +239,8 @@ class TypeHelper {
         }
 
         data = value;
-      } else if (Array.isArray(type)) {
-        if (!type.includes(value)) {
+      } else if (Array.isArray(matcher)) {
+        if (!matcher.includes(value)) {
           throw new Error(
             resultKey !== null
               ? `Result value for "${resultKey}" must be of type "${resultType}".`
@@ -247,7 +249,7 @@ class TypeHelper {
         }
 
         data = value;
-      } else if (typeof type === "object") {
+      } else if (typeof matcher === "object") {
         if (typeof value !== "object") {
           throw new Error(
             resultKey !== null
@@ -260,12 +262,12 @@ class TypeHelper {
 
         data._typename = name;
 
-        for (const key in type) {
+        for (const key in matcher) {
           // recursion
 
           data[key] = this.parseResult(
             value[key],
-            type[key],
+            matcher[key],
             server,
             `${name}.${key}`
           );
