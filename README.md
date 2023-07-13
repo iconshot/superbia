@@ -65,7 +65,7 @@ That's it. Our `server` is up and running.
 
 ### Client
 
-Now, using `superbia-client` we can access the endpoint just created.
+Now, using `@superbia/client` we can access the endpoint just created.
 
 ```js
 const response = await client.request({ user: { id: "1" } });
@@ -79,7 +79,7 @@ const {
 console.log(name); // Jhon Doe
 ```
 
-More on the `client` in the [superbia-client's page](https://github.com/iconshot/superbia-client).
+More on the `client` in the [@superbia/client's page](https://github.com/iconshot/superbia-client).
 
 ## Basics
 
