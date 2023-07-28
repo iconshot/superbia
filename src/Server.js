@@ -32,7 +32,40 @@ class Server {
 
     this.publisher = new Publisher();
 
+    this.init();
+  }
+
+  init() {
+    const app = express();
+
+    this.app = app;
+
+    // app middlewares
+
+    app.use(cors());
+    app.use(fileUpload());
+
+    app.use(express.json());
+
+    app.use(express.urlencoded({ extended: true }));
+
+    app.set("trust proxy", true);
+
+    // servers
+
+    const server = http.createServer(app);
+
+    this.server = server;
+
+    const ws = new WebSocketServer({ server });
+
+    this.ws = ws;
+
     this.setDefaultTypes();
+  }
+
+  getApp() {
+    return this.app;
   }
 
   getPublisher() {
@@ -146,43 +179,18 @@ class Server {
 
   start(port) {
     return new Promise((resolve, reject) => {
-      const app = express();
-
-      this.app = app;
-
-      // app middlewares
-
-      app.use(cors());
-      app.use(fileUpload());
-
-      app.use(express.json());
-
-      app.use(express.urlencoded({ extended: true }));
-
-      app.set("trust proxy", true);
-
-      const server = http.createServer(app);
-
-      this.server = server;
-
-      const ws = new WebSocketServer({ server });
-
-      this.ws = ws;
-
-      this.parse();
+      this.parseTypes();
 
       this.addRequestHandler();
       this.addSubscriptionHandler();
 
-      server.on("error", (error) => {
-        reject(error);
-      });
+      this.server.on("error", (error) => reject(error));
 
-      server.listen(port, resolve);
+      this.server.listen(port, resolve);
     });
   }
 
-  parse() {
+  parseTypes() {
     TypeHelper.parseTypes(this);
     TypeHelper.parseRequests(this);
     TypeHelper.parseSubscriptions(this);
