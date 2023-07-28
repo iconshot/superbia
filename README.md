@@ -124,8 +124,70 @@ You can define arrays by using the syntax `[Type]`.
 
 ```js
 server.setType("User", {
-  stories: "[ID]", // "stories" items can be null and also "stories" itself
-  posts: "[ID]!", // "posts" items can be null but "posts" itself can't
-  friends: "[ID!]!", // "friends" items can't be null and neither "friends"
+  stories: "[ID]", // "stories" array can be null, "stories" items can be null
+  posts: "[ID]!", // "posts" array can't be null, "posts" items can be null
+  friends: "[ID!]!", // "friends" array can't be null, "friends" items can't be null
 });
 ```
+
+## Uploads
+
+You just need to add the `Upload` type as a parameter.
+
+```js
+server
+  .setRequest("uploadPhoto")
+  .setParams({ upload: "Upload" }) // notice the Upload type
+  .setResolver(async (params) => {
+    const { upload } = params;
+
+    // get the name of the file
+
+    const name = upload.getName();
+
+    // uploads will be kept in memory until we save them
+
+    await upload.save(name);
+  });
+```
+
+## Subscriptions
+
+We'll understand subscriptions better with an example.
+
+Let's say we have a `counter` and we want to create a subscription for listening to changes in this `counter`.
+
+```js
+let counter = 0;
+```
+
+We define the subscription endpoint:
+
+```js
+server
+  .setSubscription("counter")
+  .setResult("Int") // it works the same way as in requests
+  .setResolver(() => {
+    // instead of returning the data right away
+    // we return an object with two properties
+    // subscribe (required) and unsubscribe (optional)
+
+    return {
+      subscribe: () => {
+        return "counterRoom"; // a room key
+      },
+    };
+  });
+```
+
+Later on your server you run:
+
+```js
+counter++;
+
+server.publish("counterRoom", counter); // notice how we use the same room key as before
+```
+
+The explanation is simple:
+
+`setSubscription` will attach a `roomKey` to a subscription. Then, when we publish data to that `roomKey`, the subscription will be notified.
