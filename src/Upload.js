@@ -1,7 +1,6 @@
 const path = require("path");
-const fs = require("fs");
 
-const fse = require("fs-extra");
+const fs = require("fs/promises");
 
 class Upload {
   constructor(buffer, name, encoding, mimeType, size) {
@@ -35,19 +34,9 @@ class Upload {
   async save(file) {
     const dir = path.dirname(file);
 
-    await fse.ensureDir(dir);
+    await fs.mkdir(dir, { recursive: true });
 
-    return new Promise((resolve, reject) => {
-      const stream = fs.createWriteStream(file);
-
-      stream.on("error", (error) => reject(error));
-
-      stream.on("close", resolve);
-
-      stream.write(this.buffer);
-
-      stream.end();
-    });
+    await fs.writeFile(file, this.buffer);
   }
 }
 
