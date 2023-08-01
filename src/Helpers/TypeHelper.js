@@ -1,4 +1,36 @@
 class TypeHelper {
+  static parseUploads(value, uploads) {
+    if (value === null) {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((tmpValue) => this.parseUploads(tmpValue, uploads));
+    }
+
+    if (typeof value === "object") {
+      // check if value is like { uploadKey: 1 }
+
+      if (Object.keys(value).length === 1 && "uploadKey" in value) {
+        const uploadKey = `${value.uploadKey}`;
+
+        if (uploads.has(uploadKey)) {
+          return uploads.get(uploadKey);
+        }
+      }
+
+      const tmpValue = {};
+
+      for (const key in value) {
+        tmpValue[key] = this.parseUploads(value[key], uploads);
+      }
+
+      return tmpValue;
+    }
+
+    return value;
+  }
+
   static parseTypes(server) {
     const types = server.getTypes();
 

@@ -33,10 +33,8 @@ server
   .setRequest("user") // endpoint name
   .setParams({ id: "ID" }) // endpoint params
   .setResult("User") // type returned by resolver
-  .setResolver((params) => {
-    // async is also valid
-
-    const { id } = params;
+  .setResolver(({ params: { id } }) => {
+    // dummy resolver
 
     const users = [
       { id: "1", name: "Jhon Doe" },
@@ -138,9 +136,7 @@ You just need to add the `Upload` type as a parameter.
 server
   .setRequest("uploadPhoto")
   .setParams({ upload: "Upload" }) // notice the Upload type
-  .setResolver(async (params) => {
-    const { upload } = params;
-
+  .setResolver(async ({ params: { upload } }) => {
     // get the name of the file
 
     const name = upload.getName();

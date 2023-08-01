@@ -1,30 +1,35 @@
 const path = require("path");
+const fs = require("fs");
 
 const fse = require("fs-extra");
 
 class Upload {
-  constructor(file) {
-    this.file = file;
-  }
-
-  getName() {
-    return this.file.name;
-  }
-
-  getMimetype() {
-    return this.file.mimetype;
+  constructor(buffer, name, encoding, mimeType, size) {
+    this.buffer = buffer;
+    this.name = name;
+    this.encoding = encoding;
+    this.mimeType = mimeType;
+    this.size = size;
   }
 
   getBuffer() {
-    return this.file.data;
+    return this.buffer;
+  }
+
+  getName() {
+    return this.name;
+  }
+
+  getEncoding() {
+    return this.encoding;
+  }
+
+  getMimeType() {
+    return this.mimeType;
   }
 
   getSize() {
-    return this.file.size;
-  }
-
-  getMd5() {
-    return this.file.md5;
+    return this.size;
   }
 
   async save(file) {
@@ -32,7 +37,17 @@ class Upload {
 
     await fse.ensureDir(dir);
 
-    return await this.file.mv(file);
+    return new Promise((resolve, reject) => {
+      const stream = fs.createWriteStream(file);
+
+      stream.on("error", (error) => reject(error));
+
+      stream.on("close", resolve);
+
+      stream.write(this.buffer);
+
+      stream.end();
+    });
   }
 }
 

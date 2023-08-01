@@ -5,7 +5,7 @@ const ErrorHelper = require("../Helpers/ErrorHelper");
 
 const Socket = require("../Publisher/Socket");
 
-const Context = require("../Context");
+const ContextWrapper = require("../ContextWrapper");
 
 const defaultResult = {
   subscribe: async () => {},
@@ -18,7 +18,7 @@ module.exports = (server) => {
   return (connection, req) => {
     const socket = new Socket();
 
-    const getContext = server.getContext();
+    const contextClosure = server.getContext();
 
     // replicate request headers
 
@@ -30,7 +30,7 @@ module.exports = (server) => {
       headers[key.toLowerCase()] = query[key];
     }
 
-    const context = new Context(getContext, headers, req);
+    const contextWrapper = new ContextWrapper(contextClosure, req, headers);
 
     connection.on("message", async (data) => {
       let json = null;
@@ -52,6 +52,17 @@ module.exports = (server) => {
       }
 
       try {
+        const middlewares = server.getMiddlewares();
+        const subscriptionMiddlewares = server.getSubscriptionMiddlewares();
+
+        for (const middleware of middlewares) {
+          await middleware({ req, headers });
+        }
+
+        for (const subscriptionMiddleware of subscriptionMiddlewares) {
+          await subscriptionMiddleware({ req, connection, headers });
+        }
+
         if (endpoint === null) {
           // unsubscribe
 
@@ -82,7 +93,7 @@ module.exports = (server) => {
 
         const subscription = socket.createSubscription(subscriptionKey);
 
-        const contextData = await context.getData();
+        const context = await contextWrapper.getContext();
 
         const name = keys[0];
 
@@ -101,7 +112,7 @@ module.exports = (server) => {
 
           TypeHelper.parseParams(params, paramsSchema, server);
 
-          const result = await resolver(params, contextData);
+          const result = await resolver({ req, headers, params, context });
 
           // use defaultResult if necessary
 

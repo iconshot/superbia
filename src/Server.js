@@ -1,10 +1,5 @@
 const http = require("http");
 
-const express = require("express");
-
-const cors = require("cors");
-const fileUpload = require("express-fileupload");
-
 const { Server: WebSocketServer } = require("ws");
 
 const TypeHelper = require("./Helpers/TypeHelper");
@@ -20,7 +15,6 @@ const Upload = require("./Upload");
 
 class Server {
   constructor() {
-    this.app = null; // express app
     this.server = null; // http server
     this.ws = null; // ws server
 
@@ -30,42 +24,14 @@ class Server {
 
     this.context = null;
 
+    this.middlewares = [];
+
+    this.requestMiddlewares = [];
+    this.subscriptionMiddlewares = [];
+
     this.publisher = new Publisher();
 
-    this.init();
-  }
-
-  init() {
-    const app = express();
-
-    this.app = app;
-
-    // app middlewares
-
-    app.use(cors());
-    app.use(fileUpload());
-
-    app.use(express.json());
-
-    app.use(express.urlencoded({ extended: true }));
-
-    app.set("trust proxy", true);
-
-    // servers
-
-    const server = http.createServer(app);
-
-    this.server = server;
-
-    const ws = new WebSocketServer({ server });
-
-    this.ws = ws;
-
     this.setDefaultTypes();
-  }
-
-  getApp() {
-    return this.app;
   }
 
   getPublisher() {
@@ -177,16 +143,43 @@ class Server {
     this.context = context;
   }
 
+  addMiddleware(middleware) {
+    this.middlewares.push(middleware);
+  }
+
+  getMiddlewares() {
+    return this.middlewares;
+  }
+
+  addRequestMiddleware(middleware) {
+    this.requestMiddlewares.push(middleware);
+  }
+
+  getRequestMiddlewares() {
+    return this.requestMiddlewares;
+  }
+
+  addSubscriptionMiddleware(middleware) {
+    this.subscriptionMiddlewares.push(middleware);
+  }
+
+  getSubscriptionMiddlewares() {
+    return this.subscriptionMiddlewares;
+  }
+
   start(port) {
+    this.parseTypes();
+
     return new Promise((resolve, reject) => {
-      this.parseTypes();
+      const server = http.createServer(requestHandler(this));
 
-      this.addRequestHandler();
-      this.addSubscriptionHandler();
+      const ws = new WebSocketServer({ server });
 
-      this.server.on("error", (error) => reject(error));
+      ws.on("connection", subscriptionHandler(this));
 
-      this.server.listen(port, resolve);
+      server.on("error", (error) => reject(error));
+
+      server.listen(port, resolve);
     });
   }
 
@@ -194,14 +187,6 @@ class Server {
     TypeHelper.parseTypes(this);
     TypeHelper.parseRequests(this);
     TypeHelper.parseSubscriptions(this);
-  }
-
-  addRequestHandler() {
-    this.app.post("/", requestHandler(this));
-  }
-
-  addSubscriptionHandler() {
-    this.ws.on("connection", subscriptionHandler(this));
   }
 
   publish(key, data) {
