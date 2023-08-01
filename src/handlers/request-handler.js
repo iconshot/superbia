@@ -10,17 +10,33 @@ const ContextWrapper = require("../ContextWrapper");
 module.exports = (server) => async (req, res) => {
   const response = { data: null, error: null };
 
+  const write = () => {
+    res.write(JSON.stringify(response));
+
+    res.end();
+  };
+
   // response head
 
   res.statusCode = 200;
 
+  res.setHeader("Allow", "OPTIONS, POST");
   res.setHeader("Access-Control-Allow-Origin", "*");
-
   res.setHeader("Access-Control-Allow-Headers", "*");
-
   res.setHeader("Content-Type", "application/json");
 
-  const { headers } = req;
+  const { headers, method } = req;
+
+  const isOptions = method === "OPTIONS";
+  const isPost = method === "POST";
+
+  if (!isOptions && !isPost) {
+    res.statusCode = 405;
+
+    write();
+
+    return;
+  }
 
   try {
     const middlewares = server.getMiddlewares();
@@ -37,21 +53,19 @@ module.exports = (server) => async (req, res) => {
     response.error = ErrorHelper.parseError(error);
   }
 
-  if (req.method !== "POST") {
-    res.end();
+  if (isOptions) {
+    write();
 
     return;
   }
 
   if (response.error !== null) {
-    res.write(JSON.stringify(response));
-
-    res.end();
+    write();
 
     return;
   }
 
-  const bb = busboy({ headers: req.headers });
+  const bb = busboy({ headers });
 
   const fields = new Map();
   const uploads = new Map();
@@ -145,9 +159,7 @@ module.exports = (server) => async (req, res) => {
       response.error = ErrorHelper.parseError(error);
     }
 
-    res.write(JSON.stringify(response));
-
-    res.end();
+    write();
   });
 
   req.pipe(bb);
