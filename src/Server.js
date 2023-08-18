@@ -22,7 +22,7 @@ class Server {
     this.requests = new Map();
     this.subscriptions = new Map();
 
-    this.context = null;
+    this.contexts = [];
 
     this.middlewares = [];
 
@@ -135,36 +135,36 @@ class Server {
     this.subscriptions.delete(name);
   }
 
-  getContext() {
-    return this.context;
+  getContexts() {
+    return this.contexts;
   }
 
-  setContext(context) {
-    this.context = context;
-  }
-
-  addMiddleware(middleware) {
-    this.middlewares.push(middleware);
+  addContext(context) {
+    this.contexts.push(context);
   }
 
   getMiddlewares() {
     return this.middlewares;
   }
 
-  addRequestMiddleware(middleware) {
-    this.requestMiddlewares.push(middleware);
+  addMiddleware(middleware) {
+    this.middlewares.push(middleware);
   }
 
   getRequestMiddlewares() {
     return this.requestMiddlewares;
   }
 
-  addSubscriptionMiddleware(middleware) {
-    this.subscriptionMiddlewares.push(middleware);
+  addRequestMiddleware(middleware) {
+    this.requestMiddlewares.push(middleware);
   }
 
   getSubscriptionMiddlewares() {
     return this.subscriptionMiddlewares;
+  }
+
+  addSubscriptionMiddleware(middleware) {
+    this.subscriptionMiddlewares.push(middleware);
   }
 
   start(port) {

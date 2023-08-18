@@ -5,33 +5,33 @@ const ErrorHelper = require("../Helpers/ErrorHelper");
 
 const Upload = require("../Upload");
 
-const ContextWrapper = require("../ContextWrapper");
+const ContextReducer = require("../ContextReducer");
 
-module.exports = (server) => async (req, res) => {
-  const response = { data: null, error: null };
+module.exports = (server) => async (request, response) => {
+  const tmpResponse = { data: null, error: null };
 
   const write = () => {
-    res.write(JSON.stringify(response));
+    response.write(JSON.stringify(tmpResponse));
 
-    res.end();
+    response.end();
   };
 
   // response head
 
-  res.statusCode = 200;
+  response.statusCode = 200;
 
-  res.setHeader("Allow", "OPTIONS, POST");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "*");
-  res.setHeader("Content-Type", "application/json");
+  response.setHeader("Allow", "OPTIONS, POST");
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader("Access-Control-Allow-Headers", "*");
+  response.setHeader("Content-Type", "application/json");
 
-  const { headers, method } = req;
+  const { headers, method } = request;
 
   const isOptions = method === "OPTIONS";
   const isPost = method === "POST";
 
   if (!isOptions && !isPost) {
-    res.statusCode = 405;
+    response.statusCode = 405;
 
     write();
 
@@ -43,14 +43,14 @@ module.exports = (server) => async (req, res) => {
     const requestMiddlewares = server.getRequestMiddlewares();
 
     for (const middleware of middlewares) {
-      await middleware({ req, headers });
+      await middleware({ request, headers });
     }
 
     for (const requestMiddleware of requestMiddlewares) {
-      await requestMiddleware({ req, res, headers });
+      await requestMiddleware({ request, response, headers });
     }
   } catch (error) {
-    response.error = ErrorHelper.parseError(error);
+    tmpResponse.error = ErrorHelper.parseError(error);
   }
 
   if (isOptions) {
@@ -59,7 +59,7 @@ module.exports = (server) => async (req, res) => {
     return;
   }
 
-  if (response.error !== null) {
+  if (tmpResponse.error !== null) {
     write();
 
     return;
@@ -111,15 +111,13 @@ module.exports = (server) => async (req, res) => {
         throw new Error("Endpoints parameter must not be an empty object.");
       }
 
-      const contextClosure = server.getContext();
+      const contextReducer = new ContextReducer(server, { request, headers });
 
-      const contextWrapper = new ContextWrapper(contextClosure, req, headers);
-
-      const context = await contextWrapper.getContext();
+      const context = await contextReducer.getContext();
 
       const endpoints = TypeHelper.parseUploads(json, uploads);
 
-      response.data = {};
+      tmpResponse.data = {};
 
       const names = Object.keys(endpoints);
 
@@ -134,21 +132,27 @@ module.exports = (server) => async (req, res) => {
 
             const params = endpoints[name];
 
-            const request = server.getRequest(name);
+            const tmpRequest = server.getRequest(name);
 
-            const paramsSchema = request.getParams();
-            const resultType = request.getResult();
-            const resolver = request.getResolver();
+            const paramsSchema = tmpRequest.getParams();
+            const resultType = tmpRequest.getResult();
+            const resolver = tmpRequest.getResolver();
 
             TypeHelper.parseParams(params, paramsSchema, server);
 
-            const result = await resolver({ req, headers, params, context });
+            const result = await resolver({
+              request,
+              response,
+              headers,
+              params,
+              context,
+            });
 
             const data = TypeHelper.parseResult(result, resultType, server);
 
-            response.data[name] = { data, error: null };
+            tmpResponse.data[name] = { data, error: null };
           } catch (error) {
-            response.data[name] = {
+            tmpResponse.data[name] = {
               data: null,
               error: ErrorHelper.parseError(error),
             };
@@ -156,11 +160,11 @@ module.exports = (server) => async (req, res) => {
         })
       );
     } catch (error) {
-      response.error = ErrorHelper.parseError(error);
+      tmpResponse.error = ErrorHelper.parseError(error);
     }
 
     write();
   });
 
-  req.pipe(bb);
+  request.pipe(bb);
 };

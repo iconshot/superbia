@@ -1,206 +1,206 @@
-const url = require("url");
-
 const TypeHelper = require("../Helpers/TypeHelper");
 const ErrorHelper = require("../Helpers/ErrorHelper");
 
 const Socket = require("../Publisher/Socket");
 
-const ContextWrapper = require("../ContextWrapper");
+const ContextReducer = require("../ContextReducer");
 
 const defaultResult = {
   subscribe: async () => {},
   unsubscribe: async () => {},
 };
 
-module.exports = (server) => {
+module.exports = (server) => (connection, request) => {
   const publisher = server.getPublisher();
 
-  return (connection, req) => {
-    const socket = new Socket();
+  const socket = new Socket();
 
-    const contextClosure = server.getContext();
+  // replicate request headers
 
-    // replicate request headers
+  const headers = {};
 
-    const headers = {};
+  const url = new URL(request.url, "http://localhost");
 
-    const query = { ...url.parse(req.url, { parseQueryString: true }).query };
+  url.searchParams.forEach((value, key) => {
+    headers[key.toLowerCase()] = value;
+  });
 
-    for (const key in query) {
-      headers[key.toLowerCase()] = query[key];
+  const contextReducer = new ContextReducer(server, { request, headers });
+
+  connection.on("message", async (data) => {
+    let json = null;
+
+    try {
+      json = JSON.parse(data.toString());
+    } catch (error) {
+      return;
     }
 
-    const contextWrapper = new ContextWrapper(contextClosure, req, headers);
+    if (json === null || typeof json !== "object") {
+      return;
+    }
 
-    connection.on("message", async (data) => {
-      let json = null;
+    const { subscriptionKey = null, endpoint = null } = json;
+
+    if (subscriptionKey === null) {
+      return;
+    }
+
+    try {
+      const middlewares = server.getMiddlewares();
+      const subscriptionMiddlewares = server.getSubscriptionMiddlewares();
+
+      for (const middleware of middlewares) {
+        await middleware({ request, headers });
+      }
+
+      for (const subscriptionMiddleware of subscriptionMiddlewares) {
+        await subscriptionMiddleware({ request, connection, headers });
+      }
+
+      if (endpoint === null) {
+        // unsubscribe
+
+        if (!socket.hasSubscription(subscriptionKey)) {
+          throw new Error(`Subscription "${subscriptionKey}" not found.`);
+        }
+
+        const subscription = socket.getSubscription(subscriptionKey);
+
+        subscription.unsubscribe();
+
+        return;
+      }
+
+      if (socket.hasSubscription(subscriptionKey)) {
+        return;
+      }
+
+      if (endpoint === null || typeof endpoint !== "object") {
+        throw new Error("Endpoint parameter is not an object.");
+      }
+
+      const keys = Object.keys(endpoint);
+
+      if (keys.length !== 1) {
+        throw new Error("Endpoint parameter must have one element.");
+      }
+
+      const subscription = socket.createSubscription(subscriptionKey);
+
+      const context = await contextReducer.getContext();
+
+      const name = keys[0];
 
       try {
-        json = JSON.parse(data.toString());
-      } catch (error) {
-        return;
-      }
-
-      if (json === null || typeof json !== "object") {
-        return;
-      }
-
-      const { subscriptionKey = null, endpoint = null } = json;
-
-      if (subscriptionKey === null) {
-        return;
-      }
-
-      try {
-        const middlewares = server.getMiddlewares();
-        const subscriptionMiddlewares = server.getSubscriptionMiddlewares();
-
-        for (const middleware of middlewares) {
-          await middleware({ req, headers });
+        if (!server.hasSubscription(name)) {
+          throw new Error("Subscription endpoint not found.");
         }
 
-        for (const subscriptionMiddleware of subscriptionMiddlewares) {
-          await subscriptionMiddleware({ req, connection, headers });
+        const params = endpoint[name];
+
+        const tmpSubscription = server.getSubscription(name);
+
+        const paramsSchema = tmpSubscription.getParams();
+        const resultType = tmpSubscription.getResult();
+        const resolver = tmpSubscription.getResolver();
+
+        TypeHelper.parseParams(params, paramsSchema, server);
+
+        const result = await resolver({
+          request,
+          connection,
+          headers,
+          params,
+          context,
+        });
+
+        // use defaultResult if necessary
+
+        const {
+          subscribe = defaultResult.subscribe,
+          unsubscribe = defaultResult.unsubscribe,
+        } = result !== undefined ? result : defaultResult;
+
+        let roomKeys = await subscribe();
+
+        // cast to array
+
+        if (roomKeys === undefined || roomKeys === null) {
+          roomKeys = [];
+        } else if (!Array.isArray(roomKeys)) {
+          roomKeys = [roomKeys];
         }
 
-        if (endpoint === null) {
-          // unsubscribe
+        // client will handle this message as a "success" event
 
-          if (!socket.hasSubscription(subscriptionKey)) {
-            throw new Error(`Subscription "${subscriptionKey}" not found.`);
-          }
+        connection.send(
+          JSON.stringify({
+            subscriptionKey,
+            response: { data: null, error: null },
+          })
+        );
 
-          const subscription = socket.getSubscription(subscriptionKey);
+        // subscription can subscribe to multiple rooms
 
-          subscription.unsubscribe();
+        const rooms = roomKeys.map((key) =>
+          publisher.createRoom(key, (data) => {
+            try {
+              const json = TypeHelper.parseResult(data, resultType, server);
 
-          return;
-        }
-
-        if (socket.hasSubscription(subscriptionKey)) {
-          return;
-        }
-
-        if (endpoint === null || typeof endpoint !== "object") {
-          throw new Error("Endpoint parameter is not an object.");
-        }
-
-        const keys = Object.keys(endpoint);
-
-        if (keys.length !== 1) {
-          throw new Error("Endpoint parameter must have one element.");
-        }
-
-        const subscription = socket.createSubscription(subscriptionKey);
-
-        const context = await contextWrapper.getContext();
-
-        const name = keys[0];
-
-        try {
-          if (!server.hasSubscription(name)) {
-            throw new Error("Subscription endpoint not found.");
-          }
-
-          const params = endpoint[name];
-
-          const tmpSubscription = server.getSubscription(name);
-
-          const paramsSchema = tmpSubscription.getParams();
-          const resultType = tmpSubscription.getResult();
-          const resolver = tmpSubscription.getResolver();
-
-          TypeHelper.parseParams(params, paramsSchema, server);
-
-          const result = await resolver({ req, headers, params, context });
-
-          // use defaultResult if necessary
-
-          const {
-            subscribe = defaultResult.subscribe,
-            unsubscribe = defaultResult.unsubscribe,
-          } = result !== undefined ? result : defaultResult;
-
-          let roomKeys = await subscribe();
-
-          // cast to array
-
-          if (roomKeys === undefined || roomKeys === null) {
-            roomKeys = [];
-          } else if (!Array.isArray(roomKeys)) {
-            roomKeys = [roomKeys];
-          }
-
-          // client will handle this message as a "success" event
-
-          connection.send(
-            JSON.stringify({
-              subscriptionKey,
-              response: { data: null, error: null },
-            })
-          );
-
-          // subscription can subscribe to multiple rooms
-
-          const rooms = roomKeys.map((key) =>
-            publisher.createRoom(key, (data) => {
-              try {
-                const json = TypeHelper.parseResult(data, resultType, server);
-
-                connection.send(
-                  JSON.stringify({
-                    subscriptionKey,
-                    response: {
-                      data: { [name]: { data: json, error: null } },
-                      error: null,
-                    },
-                  })
-                );
-              } catch (error) {
-                connection.send(
-                  JSON.stringify({
-                    subscriptionKey,
-                    response: {
-                      data: {
-                        [name]: {
-                          data: null,
-                          error: ErrorHelper.parseError(error),
-                        },
+              connection.send(
+                JSON.stringify({
+                  subscriptionKey,
+                  response: {
+                    data: { [name]: { data: json, error: null } },
+                    error: null,
+                  },
+                })
+              );
+            } catch (error) {
+              connection.send(
+                JSON.stringify({
+                  subscriptionKey,
+                  response: {
+                    data: {
+                      [name]: {
+                        data: null,
+                        error: ErrorHelper.parseError(error),
                       },
-                      error: null,
                     },
-                  })
-                );
-              }
-            })
-          );
+                    error: null,
+                  },
+                })
+              );
+            }
+          })
+        );
 
-          subscription.subscribe(rooms, unsubscribe);
-        } catch (error) {
-          connection.send(
-            JSON.stringify({
-              subscriptionKey,
-              response: {
-                data: {
-                  [name]: { data: null, error: ErrorHelper.parseError(error) },
-                },
-                error: null,
-              },
-            })
-          );
-        }
+        subscription.subscribe(rooms, unsubscribe);
       } catch (error) {
         connection.send(
           JSON.stringify({
             subscriptionKey,
-            response: { data: null, error: ErrorHelper.parseError(error) },
+            response: {
+              data: {
+                [name]: { data: null, error: ErrorHelper.parseError(error) },
+              },
+              error: null,
+            },
           })
         );
       }
-    });
+    } catch (error) {
+      connection.send(
+        JSON.stringify({
+          subscriptionKey,
+          response: { data: null, error: ErrorHelper.parseError(error) },
+        })
+      );
+    }
+  });
 
-    // unsubscribe to all
+  // unsubscribe to all
 
-    connection.on("close", () => socket.unsubscribe());
-  };
+  connection.on("close", () => socket.unsubscribe());
 };
