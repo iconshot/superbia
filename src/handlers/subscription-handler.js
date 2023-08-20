@@ -47,15 +47,17 @@ module.exports = (server) => (connection, request) => {
     }
 
     try {
+      const context = await contextReducer.getContext();
+
       const middlewares = server.getMiddlewares();
       const subscriptionMiddlewares = server.getSubscriptionMiddlewares();
 
       for (const middleware of middlewares) {
-        await middleware({ request, headers });
+        await middleware({ request, headers, context });
       }
 
       for (const subscriptionMiddleware of subscriptionMiddlewares) {
-        await subscriptionMiddleware({ request, connection, headers });
+        await subscriptionMiddleware({ request, connection, headers, context });
       }
 
       if (endpoint === null) {
@@ -88,8 +90,6 @@ module.exports = (server) => (connection, request) => {
 
       const subscription = socket.createSubscription(subscriptionKey);
 
-      const context = await contextReducer.getContext();
-
       const name = keys[0];
 
       try {
@@ -111,8 +111,8 @@ module.exports = (server) => (connection, request) => {
           request,
           connection,
           headers,
-          params,
           context,
+          params,
         });
 
         // use defaultResult if necessary

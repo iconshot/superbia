@@ -38,28 +38,34 @@ module.exports = (server) => async (request, response) => {
     return;
   }
 
+  let context = null;
+
+  const contextReducer = new ContextReducer(server, { request, headers });
+
   try {
+    context = await contextReducer.getContext();
+
     const middlewares = server.getMiddlewares();
     const requestMiddlewares = server.getRequestMiddlewares();
 
     for (const middleware of middlewares) {
-      await middleware({ request, headers });
+      await middleware({ request, headers, context });
     }
 
     for (const requestMiddleware of requestMiddlewares) {
-      await requestMiddleware({ request, response, headers });
+      await requestMiddleware({ request, response, headers, context });
     }
   } catch (error) {
     tmpResponse.error = ErrorHelper.parseError(error);
   }
 
-  if (isOptions) {
+  if (tmpResponse.error !== null) {
     write();
 
     return;
   }
 
-  if (tmpResponse.error !== null) {
+  if (isOptions) {
     write();
 
     return;
@@ -111,10 +117,6 @@ module.exports = (server) => async (request, response) => {
         throw new Error("Endpoints parameter must not be an empty object.");
       }
 
-      const contextReducer = new ContextReducer(server, { request, headers });
-
-      const context = await contextReducer.getContext();
-
       const endpoints = TypeHelper.parseUploads(json, uploads);
 
       tmpResponse.data = {};
@@ -144,8 +146,8 @@ module.exports = (server) => async (request, response) => {
               request,
               response,
               headers,
-              params,
               context,
+              params,
             });
 
             const data = TypeHelper.parseResult(result, resultType, server);
