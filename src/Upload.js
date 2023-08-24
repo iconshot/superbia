@@ -3,12 +3,11 @@ const path = require("path");
 const fs = require("fs/promises");
 
 class Upload {
-  constructor(buffer, name, encoding, mimeType, size) {
+  constructor(buffer, name, encoding, mimeType) {
     this.buffer = buffer;
     this.name = name;
     this.encoding = encoding;
     this.mimeType = mimeType;
-    this.size = size;
   }
 
   getBuffer() {
@@ -28,7 +27,7 @@ class Upload {
   }
 
   getSize() {
-    return this.size;
+    return this.buffer.length;
   }
 
   async save(file) {

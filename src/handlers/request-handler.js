@@ -84,18 +84,15 @@ module.exports = (server) => async (request, response) => {
     const { filename, encoding, mimeType } = info;
 
     const buffers = [];
-    let size = 0;
 
-    file.on("data", (data) => {
-      buffers.push(data);
-
-      size += data.length;
-    });
+    file.on("data", (data) => buffers.push(data));
 
     file.on("close", () => {
-      const buffer = Buffer.concat(buffers, size);
+      const buffer = Buffer.concat(buffers);
 
-      uploads.set(key, new Upload(buffer, filename, encoding, mimeType, size));
+      const upload = new Upload(buffer, filename, encoding, mimeType);
+
+      uploads.set(key, upload);
     });
   });
 
