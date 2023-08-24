@@ -99,7 +99,17 @@ module.exports = (server) => async (request, response) => {
     });
   });
 
-  bb.on("close", async () => {
+  bb.on("error", () => {
+    try {
+      throw new Error("Malformed request body.");
+    } catch (error) {
+      tmpResponse.error = ErrorHelper.parseError(error);
+    } finally {
+      write();
+    }
+  });
+
+  bb.on("finish", async () => {
     try {
       if (!fields.has("endpoints")) {
         throw new Error("Endpoints parameter not found in request body.");
@@ -163,9 +173,9 @@ module.exports = (server) => async (request, response) => {
       );
     } catch (error) {
       tmpResponse.error = ErrorHelper.parseError(error);
+    } finally {
+      write();
     }
-
-    write();
   });
 
   request.pipe(bb);
