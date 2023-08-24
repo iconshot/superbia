@@ -1,6 +1,6 @@
 const path = require("path");
 
-const fs = require("fs/promises");
+const fsp = require("fs/promises");
 
 class Upload {
   constructor(buffer, name, encoding, mimeType) {
@@ -33,9 +33,9 @@ class Upload {
   async save(file) {
     const dir = path.dirname(file);
 
-    await fs.mkdir(dir, { recursive: true });
+    await fsp.mkdir(dir, { recursive: true });
 
-    await fs.writeFile(file, this.buffer);
+    await fsp.writeFile(file, this.buffer);
   }
 }
 
