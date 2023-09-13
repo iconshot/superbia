@@ -33,7 +33,8 @@ class Type {
 
       this.server.setType(name, {
         nodes: `[${this.name}!]!`,
-        pageInfo: "PaginationPageInfo!",
+        hasNextPage: "Boolean!",
+        nextPageCursor: "String",
       });
     } else {
       // delete the Pagination type

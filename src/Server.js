@@ -88,11 +88,6 @@ class Server {
     this.setType("Upload", (value) => value instanceof Upload);
 
     this.setType("Date", (value) => value instanceof Date);
-
-    this.setType("PaginationPageInfo", {
-      hasNextPage: "Boolean!",
-      nextPageCursor: "String",
-    });
   }
 
   getRequest(name) {
