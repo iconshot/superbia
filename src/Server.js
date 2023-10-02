@@ -73,7 +73,7 @@ class Server {
   setDefaultTypes() {
     this.setType("ID", (value) => typeof value === "string");
 
-    this.setType("Boolean", (value) => value === true || value === false);
+    this.setType("Boolean", (value) => typeof value === "boolean");
 
     this.setType("String", (value) => typeof value === "string");
 
