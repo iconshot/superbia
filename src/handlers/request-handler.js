@@ -40,14 +40,6 @@ module.exports = (server) => async (request, response) => {
     return;
   }
 
-  if (!/^multipart\/form-data/.test(contentType)) {
-    response.statusCode = 406;
-
-    write();
-
-    return;
-  }
-
   let context = null;
 
   const contextReducer = new ContextReducer(server, { request, headers });
@@ -76,6 +68,14 @@ module.exports = (server) => async (request, response) => {
   }
 
   if (isOptions) {
+    write();
+
+    return;
+  }
+
+  if (!/^multipart\/form-data/.test(contentType)) {
+    response.statusCode = 406;
+
     write();
 
     return;
