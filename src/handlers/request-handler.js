@@ -25,13 +25,23 @@ module.exports = (server) => async (request, response) => {
   response.setHeader("Access-Control-Allow-Headers", "*");
   response.setHeader("Content-Type", "application/json");
 
-  const { headers, method } = request;
+  const { method, headers } = request;
 
   const isOptions = method === "OPTIONS";
   const isPost = method === "POST";
 
+  const { "content-type": contentType = "text/plain" } = headers;
+
   if (!isOptions && !isPost) {
     response.statusCode = 405;
+
+    write();
+
+    return;
+  }
+
+  if (!/^multipart\/form-data/.test(contentType)) {
+    response.statusCode = 406;
 
     write();
 
@@ -71,109 +81,119 @@ module.exports = (server) => async (request, response) => {
     return;
   }
 
-  const bb = busboy({ headers });
+  try {
+    const bb = busboy({ headers });
 
-  const fields = new Map();
-  const uploads = new Map();
+    const fields = new Map();
+    const uploads = new Map();
 
-  bb.on("field", (key, value) => {
-    fields.set(key, value);
-  });
-
-  bb.on("file", (key, file, info) => {
-    const { filename, encoding, mimeType } = info;
-
-    const buffers = [];
-
-    file.on("data", (data) => buffers.push(data));
-
-    file.on("close", () => {
-      const buffer = Buffer.concat(buffers);
-
-      const upload = new Upload(buffer, filename, encoding, mimeType);
-
-      uploads.set(key, upload);
+    bb.on("field", (key, value) => {
+      fields.set(key, value);
     });
-  });
 
-  bb.on("error", () => {
-    try {
-      throw new Error("Malformed request body.");
-    } catch (error) {
-      tmpResponse.error = ErrorHelper.parseError(error);
-    } finally {
-      write();
-    }
-  });
+    bb.on("file", (key, file, info) => {
+      const { filename, encoding, mimeType } = info;
 
-  bb.on("finish", async () => {
-    try {
-      if (!fields.has("endpoints")) {
-        throw new Error("Endpoints parameter not found in request body.");
-      }
+      const buffers = [];
 
-      const json = JSON.parse(fields.get("endpoints"));
+      file.on("data", (data) => buffers.push(data));
 
-      if (json === null || typeof json !== "object") {
-        throw new Error("Endpoints parameter is not an object.");
-      }
+      file.on("close", () => {
+        const buffer = Buffer.concat(buffers);
 
-      const keys = Object.keys(json);
+        const upload = new Upload(buffer, filename, encoding, mimeType);
 
-      if (keys.length === 0) {
-        throw new Error("Endpoints parameter must not be an empty object.");
-      }
+        uploads.set(key, upload);
+      });
+    });
 
-      const endpoints = TypeHelper.parseUploads(json, uploads);
+    bb.on("finish", async () => {
+      try {
+        if (!fields.has("endpoints")) {
+          throw new Error("Endpoints parameter not found in request body.");
+        }
 
-      tmpResponse.data = {};
+        const json = JSON.parse(fields.get("endpoints"));
 
-      const names = Object.keys(endpoints);
+        if (json === null || typeof json !== "object") {
+          throw new Error("Endpoints parameter is not an object.");
+        }
 
-      // execute all requests at the same time
+        const keys = Object.keys(json);
 
-      await Promise.all(
-        names.map(async (name) => {
-          try {
-            if (!server.hasRequest(name)) {
-              throw new Error("Request endpoint not found.");
+        if (keys.length === 0) {
+          throw new Error("Endpoints parameter must not be an empty object.");
+        }
+
+        const endpoints = TypeHelper.parseUploads(json, uploads);
+
+        tmpResponse.data = {};
+
+        const names = Object.keys(endpoints);
+
+        // execute all requests at the same time
+
+        await Promise.all(
+          names.map(async (name) => {
+            try {
+              if (!server.hasRequest(name)) {
+                throw new Error("Request endpoint not found.");
+              }
+
+              const params = endpoints[name];
+
+              const tmpRequest = server.getRequest(name);
+
+              const paramsSchema = tmpRequest.getParams();
+              const resultType = tmpRequest.getResult();
+              const resolver = tmpRequest.getResolver();
+
+              TypeHelper.parseParams(params, paramsSchema, server);
+
+              const result = await resolver({
+                request,
+                response,
+                headers,
+                context,
+                params,
+              });
+
+              const data = TypeHelper.parseResult(result, resultType, server);
+
+              tmpResponse.data[name] = { data, error: null };
+            } catch (error) {
+              tmpResponse.data[name] = {
+                data: null,
+                error: ErrorHelper.parseError(error),
+              };
             }
+          })
+        );
+      } catch (error) {
+        tmpResponse.error = ErrorHelper.parseError(error);
+      } finally {
+        write();
+      }
+    });
 
-            const params = endpoints[name];
+    bb.on("error", () => {
+      try {
+        throw new Error("Malformed request body.");
+      } catch (error) {
+        tmpResponse.error = ErrorHelper.parseError(error);
+      } finally {
+        write();
+      }
+    });
 
-            const tmpRequest = server.getRequest(name);
-
-            const paramsSchema = tmpRequest.getParams();
-            const resultType = tmpRequest.getResult();
-            const resolver = tmpRequest.getResolver();
-
-            TypeHelper.parseParams(params, paramsSchema, server);
-
-            const result = await resolver({
-              request,
-              response,
-              headers,
-              context,
-              params,
-            });
-
-            const data = TypeHelper.parseResult(result, resultType, server);
-
-            tmpResponse.data[name] = { data, error: null };
-          } catch (error) {
-            tmpResponse.data[name] = {
-              data: null,
-              error: ErrorHelper.parseError(error),
-            };
-          }
-        })
-      );
+    request.pipe(bb);
+  } catch (error) {
+    try {
+      throw new Error("Invalid request content.");
     } catch (error) {
       tmpResponse.error = ErrorHelper.parseError(error);
     } finally {
       write();
     }
-  });
-
-  request.pipe(bb);
+  }
 };
