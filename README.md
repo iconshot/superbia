@@ -143,7 +143,7 @@ server
 
     // uploads will be kept in memory until we save them
 
-    await upload.save(name);
+    await upload.write(name);
   });
 ```
 
