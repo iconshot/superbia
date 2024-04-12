@@ -1,6 +1,6 @@
 {
   "name": "superbia",
-  "version": "1.3.13",
+  "version": "1.3.14",
   "description": "Create powerful APIs.",
   "homepage": "https://superbia.dev",
   "repository": {
@@ -15,7 +15,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@reptilia/file": "^1.0.1",
+    "@reptilia/file": "^1.0.2",
     "busboy": "^1.6.0",
     "ws": "^8.2.2"
   }
