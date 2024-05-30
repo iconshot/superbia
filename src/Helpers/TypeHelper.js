@@ -122,7 +122,7 @@ class TypeHelper {
     this.parseEndpoints(server, subscriptions, false);
   }
 
-  static parseParams(params, paramsSchema, server, preffixName = null) {
+  static parseParams(params, paramsSchema, server, prefixName = null) {
     if (paramsSchema === undefined || paramsSchema === null) {
       return;
     }
@@ -138,7 +138,7 @@ class TypeHelper {
 
       const matcher = server.getType(name).getMatcher();
 
-      const paramKey = `${preffixName !== null ? `${preffixName}.` : ""}${key}`;
+      const paramKey = `${prefixName !== null ? `${prefixName}.` : ""}${key}`;
 
       const parseValue = (value) => {
         if (typeof matcher === "function") {
