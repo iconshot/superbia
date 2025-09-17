@@ -54,7 +54,7 @@ export class Type<T> {
     hasNextPage: boolean;
     nextPageCursor: string | null | undefined;
   }> {
-    const type = Type.schema({
+    const type = Type.document("__pagination__", {
       nodes: this.array(),
       hasNextPage: Type.Boolean,
       nextPageCursor: Type.String.optional(),
