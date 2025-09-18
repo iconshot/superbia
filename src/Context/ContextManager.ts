@@ -21,7 +21,7 @@ export class ContextManager<C extends ContextRecord = {}> {
     return this.handlers;
   }
 
-  setHandler<K extends string, V>(
+  public setHandler<K extends string, V>(
     key: K,
     handler: ContextHandler<C, V>
   ): ContextManager<C & { [P in K]: V }> {
