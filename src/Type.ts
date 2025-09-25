@@ -18,7 +18,17 @@ export type InferSchema<T extends TypeSchema | null> = T extends null
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
 
-export type TypeMatcher = (value: any) => boolean;
+type Merge<T, U> = Omit<T, keyof U> & U;
+
+type Exact<A, B> = A extends B
+  ? Exclude<keyof A, keyof B> extends never
+    ? A
+    : never
+  : never;
+
+type Defined<T> = T extends undefined ? never : T;
+
+export type TypeMatcher<K = any> = (value: K) => boolean;
 
 export type TypeSchema = Record<string, Type<any>>;
 
@@ -49,10 +59,55 @@ export class Type<T> {
     return type;
   }
 
+  public and(matcher: TypeMatcher<T>): Type<T> {
+    if (this.matcher === null) {
+      throw new Error("Method .and() is only supported for match types.");
+    }
+
+    const type = Type.match<T>(
+      (value) => this.matcher!(value) && matcher(value)
+    );
+
+    return type;
+  }
+
+  public extend<S extends Partial<{ [K in keyof T]: Type<any> }>>(
+    callback: (
+      type: Type<T>
+    ) => Exact<S, Partial<{ [K in keyof T]: Type<any> }>>
+  ): Type<Simplify<Merge<T, InferSchema<{ [K in keyof S]: Defined<S[K]> }>>>> {
+    if (this.schema === null) {
+      throw new Error(
+        "Method .extend() is only supported for schema/document types."
+      );
+    }
+
+    const type = new Type<any>();
+
+    const schema = this.schema;
+
+    const tmpSchema = callback(this);
+
+    const schemaKeys = Object.keys(schema);
+    const tmpSchemaKeys = Object.keys(tmpSchema);
+
+    for (const key of tmpSchemaKeys) {
+      if (!schemaKeys.includes(key)) {
+        throw new Error(`Property "${key}" not found in original schema.`);
+      }
+    }
+
+    type.typename = this.typename;
+
+    type.schema = { ...schema, ...tmpSchema };
+
+    return type;
+  }
+
   public pagination(): Type<{
     nodes: T[];
     hasNextPage: boolean;
-    nextPageCursor: string | null | undefined;
+    nextPageCursor?: string | null | undefined;
   }> {
     const type = Type.document("__pagination__", {
       nodes: this.array(),
@@ -63,10 +118,18 @@ export class Type<T> {
     return type;
   }
 
-  public static match<T>(matcher: TypeMatcher): Type<T> {
+  public static match<T>(matcher: TypeMatcher<any>): Type<T> {
     const type = new Type<T>();
 
     type.matcher = matcher;
+
+    return type;
+  }
+
+  public static enum<const V extends readonly (string | number)[]>(
+    values: V
+  ): Type<V[number]> {
+    const type = Type.match<V[number]>((value) => values.includes(value));
 
     return type;
   }
@@ -262,29 +325,33 @@ export class Type<T> {
     );
   }
 
-  public static String = Type.match<string>(
+  public static readonly Null = Type.match<null>((value) => value === null);
+
+  public static readonly String = Type.match<string>(
     (value) => typeof value === "string"
   );
 
-  public static Boolean = Type.match<boolean>(
+  public static readonly Boolean = Type.match<boolean>(
     (value) => typeof value === "boolean"
   );
 
-  public static Number = Type.match<number>(
+  public static readonly Number = Type.match<number>(
     (value) => typeof value === "number"
   );
 
-  public static Integer = Type.match<number>(
+  public static readonly Integer = Type.match<number>(
     (value) => typeof value === "number" && Number.isInteger(value)
   );
 
-  public static Float = Type.match<number>(
+  public static readonly Float = Type.match<number>(
     (value) => typeof value === "number" && !Number.isInteger(value)
   );
 
-  public static Date = Type.match<Date>(
+  public static readonly Date = Type.match<Date>(
     (value) => value instanceof Date && !isNaN(value.getTime())
   );
 
-  public static Upload = Type.match<Upload>((value) => value instanceof Upload);
+  public static readonly Upload = Type.match<Upload>(
+    (value) => value instanceof Upload
+  );
 }
