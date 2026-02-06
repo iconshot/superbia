@@ -43,7 +43,7 @@ export class UploadHelper {
 
   public static parseParams(
     params: Record<string, any> | null,
-    uploads: Map<string, Upload>
+    uploads: Map<string, Upload>,
   ): Record<string, any> | null {
     if (params === null) {
       return null;

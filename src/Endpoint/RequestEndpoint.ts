@@ -1,30 +1,30 @@
 import http from "node:http";
 
-import { ContextRecord } from "../Context/ContextManager";
+import { InputSchema, InputType, OutputType, Type, TypeSchema } from "typebad";
 
-import { Type, InferType, TypeSchema, InferSchema } from "../Type";
+import { ContextRecord } from "../Context/ContextManager";
 
 import { Endpoint } from "./Endpoint";
 
 export type RequestEndpointResolver<
   K extends ContextRecord | null,
   P extends TypeSchema | null,
-  R extends Type<any> | null
+  R extends Type<any> | null,
 > = (value: {
   request: http.IncomingMessage;
   headers: http.IncomingHttpHeaders;
-  params: InferSchema<P>;
+  params: P extends TypeSchema ? OutputType<Type<InputSchema<P>>> : null;
   context: K;
 }) => R extends Type<infer U>
   ? U extends undefined
-    ? InferType<Type<U | void | Promise<void>>>
-    : InferType<Type<U | Promise<U>>>
+    ? InputType<R> | Promise<InputType<R>> | void | Promise<void>
+    : InputType<R> | Promise<InputType<R>>
   : null | undefined | void | Promise<null | undefined | void>;
 
 export class RequestEndpoint<
   K extends ContextRecord | null,
   P extends TypeSchema | null,
-  R extends Type<any> | null
+  R extends Type<any> | null,
 > extends Endpoint<K, P, R> {
   private resolver: RequestEndpointResolver<K, P, R> | null = null;
 

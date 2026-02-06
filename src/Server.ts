@@ -1,5 +1,7 @@
 import http from "node:http";
 
+import { Type, TypeSchema } from "typebad";
+
 import { WebSocketServer } from "ws";
 
 import { RequestEndpoint } from "./Endpoint/RequestEndpoint";
@@ -14,10 +16,8 @@ import {
   InferContext,
 } from "./Context/ContextManager";
 
-import { Type, TypeSchema } from "./Type";
-
 export class Server<
-  T extends ContextManager<ContextRecord> | undefined = undefined
+  T extends ContextManager<ContextRecord> | undefined = undefined,
 > {
   private requests: Map<
     string,
@@ -43,7 +43,7 @@ export class Server<
   }
 
   public getRequest(
-    name: string
+    name: string,
   ):
     | RequestEndpoint<InferContext<T>, TypeSchema | null, Type<any> | null>
     | undefined {
@@ -51,7 +51,7 @@ export class Server<
   }
 
   public setRequest(
-    name: string
+    name: string,
   ): RequestEndpoint<InferContext<T>, null, null> {
     const request = new RequestEndpoint<any, any, any>();
 
@@ -72,7 +72,7 @@ export class Server<
   }
 
   public getSubscription(
-    name: string
+    name: string,
   ):
     | SubscriptionEndpoint<InferContext<T>, TypeSchema | null, Type<any> | null>
     | undefined {
@@ -80,7 +80,7 @@ export class Server<
   }
 
   public setSubscription(
-    name: string
+    name: string,
   ): SubscriptionEndpoint<InferContext<T>, null, null> {
     const subscription = new SubscriptionEndpoint<any, any, any>();
 

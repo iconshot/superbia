@@ -1,5 +1,5 @@
 export * from "./Server";
-export * from "./Type";
+export * from "./Types";
 export * from "./ErrorWithCode";
 
 export * from "./Context/ContextManager";

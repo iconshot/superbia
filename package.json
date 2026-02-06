@@ -1,6 +1,6 @@
 {
   "name": "superbia",
-  "version": "2.0.4",
+  "version": "2.2.0",
   "description": "Create powerful APIs.",
   "homepage": "https://superbia.dev",
   "repository": {
@@ -24,7 +24,11 @@
     "@reptilia/file": "^1.1.2",
     "busboy": "^1.6.0",
     "everemitter": "^1.2.4",
+    "tsion": "^1.0.1",
     "ws": "^8.2.2"
+  },
+  "peerDependencies": {
+    "typebad": "^1.0.4"
   },
   "devDependencies": {
     "@types/busboy": "^1.5.4",

@@ -1,6 +1,6 @@
-import { ContextRecord } from "../Context/ContextManager";
+import { Type, TypeSchema } from "typebad";
 
-import { Type, TypeSchema } from "../Type";
+import { ContextRecord } from "../Context/ContextManager";
 
 export class Endpoint<
   K extends ContextRecord | null,

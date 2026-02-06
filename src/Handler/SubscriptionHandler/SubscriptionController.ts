@@ -1,10 +1,10 @@
 import { EverEmitter } from "everemitter";
 
+import { Type, TypeSchema } from "typebad";
+
 import { SubscriptionEndpoint } from "../../Endpoint/SubscriptionEndpoint";
 
 import { ContextRecord } from "../../Context/ContextManager";
-
-import { Type, TypeSchema } from "../../Type";
 
 import { Subscription } from "./Subscription";
 import { Socket } from "./Socket";
@@ -30,7 +30,10 @@ export class SubscriptionController extends EverEmitter<SubscriptionControllerSi
 
   public listener: (value: any) => void;
 
-  constructor(private subscriptionKey: number, private socket: Socket) {
+  constructor(
+    private subscriptionKey: number,
+    private socket: Socket,
+  ) {
     super();
 
     this.listener = (value): void => {
@@ -47,7 +50,7 @@ export class SubscriptionController extends EverEmitter<SubscriptionControllerSi
       ContextRecord | null,
       TypeSchema | null,
       Type<any> | null
-    >
+    >,
   ): void {
     this.subscription = new Subscription(this);
 

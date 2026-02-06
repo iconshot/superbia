@@ -2,15 +2,17 @@ import http from "node:http";
 
 import busboy from "busboy";
 
+import Tsion from "tsion";
+
 import { ErrorHelper, ResponseError } from "../Helpers/ErrorHelper";
 import { UploadHelper } from "../Helpers/UploadHelper";
+import { ParseHelper } from "../Helpers/ParseHelper";
 
 import { ContextManager, ContextRecord } from "../Context/ContextManager";
 import { ContextGenerator } from "../Context/ContextGenerator";
 
 import { Server } from "../Server";
 import { Upload } from "../Upload";
-import { Type } from "../Type";
 
 export class RequestHandler {
   private data: {
@@ -21,7 +23,7 @@ export class RequestHandler {
   constructor(
     private server: Server<ContextManager<ContextRecord> | undefined>,
     private request: http.IncomingMessage,
-    private response: http.ServerResponse
+    private response: http.ServerResponse,
   ) {}
 
   public init(): void {
@@ -46,7 +48,7 @@ export class RequestHandler {
     }
 
     this.response.setHeader("Access-Control-Allow-Origin", "*");
-    this.response.setHeader("Content-Type", "application/json");
+    this.response.setHeader("Content-Type", "application/tsion");
 
     if (!isPost) {
       this.endError(new Error('Only "POST" requests are allowed.'));
@@ -91,15 +93,21 @@ export class RequestHandler {
       bb.on("finish", async (): Promise<void> => {
         if (!fields.has("endpoints")) {
           this.endError(
-            new Error("Endpoints field not found in request body.")
+            new Error("Endpoints field not found in request body."),
           );
 
           return;
         }
 
-        const endpointsObject = JSON.parse(fields.get("endpoints")!);
+        const endpointsObject = Tsion.decode(fields.get("endpoints")!);
 
-        if (endpointsObject === null || typeof endpointsObject !== "object") {
+        if (
+          !(
+            endpointsObject !== null &&
+            typeof endpointsObject === "object" &&
+            !Array.isArray(endpointsObject)
+          )
+        ) {
           this.endError(new Error("Endpoints field is not an object."));
 
           return;
@@ -121,7 +129,7 @@ export class RequestHandler {
           const contextGenerator = new ContextGenerator(
             contextManager,
             this.request,
-            headers
+            headers,
           );
 
           try {
@@ -154,7 +162,12 @@ export class RequestHandler {
 
               const params = endpointsObject[endpointName];
 
-              if (params !== null && typeof params !== "object") {
+              if (
+                !(
+                  params === null ||
+                  (typeof params === "object" && !Array.isArray(params))
+                )
+              ) {
                 throw new Error("Invalid params value.");
               }
 
@@ -166,9 +179,15 @@ export class RequestHandler {
                 throw new Error("Resolver not set.");
               }
 
-              const parsedParams = UploadHelper.parseParams(params, uploads);
+              const paramsWithUploads = UploadHelper.parseParams(
+                params,
+                uploads,
+              );
 
-              Type.checkParams(requestEndpoint.getParams(), parsedParams);
+              const parsedParams = ParseHelper.parseParams(
+                requestEndpoint.getParams(),
+                paramsWithUploads,
+              );
 
               let value: any = null;
 
@@ -179,16 +198,16 @@ export class RequestHandler {
                 params: parsedParams,
               });
 
-              const parsedValue = Type.parseResult(
+              const parsedValue = ParseHelper.parseResult(
                 requestEndpoint.getResult(),
-                value
+                value,
               );
 
               endpointResult.result = parsedValue;
             } catch (error) {
               endpointResult.error = ErrorHelper.parseError(error);
             }
-          }
+          },
         );
 
         await Promise.all(promises);
@@ -207,9 +226,9 @@ export class RequestHandler {
   }
 
   private end(): void {
-    const json = JSON.stringify(this.data);
+    const output = Tsion.encode(this.data);
 
-    this.response.write(json);
+    this.response.write(output);
 
     this.response.end();
   }
@@ -221,11 +240,11 @@ export class RequestHandler {
   }
 
   public static wrapListener(
-    server: Server<ContextManager<ContextRecord> | undefined>
+    server: Server<ContextManager<ContextRecord> | undefined>,
   ): http.RequestListener {
     return async (
       request: http.IncomingMessage,
-      response: http.ServerResponse
+      response: http.ServerResponse,
     ): Promise<void> => {
       const requestHandler = new RequestHandler(server, request, response);
 

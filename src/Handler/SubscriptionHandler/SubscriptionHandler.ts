@@ -2,13 +2,15 @@ import http from "node:http";
 
 import WebSocket from "ws";
 
+import Tsion from "tsion";
+
 import { ErrorHelper, ResponseError } from "../../Helpers/ErrorHelper";
+import { ParseHelper } from "../../Helpers/ParseHelper";
 
 import { ContextManager, ContextRecord } from "../../Context/ContextManager";
 import { ContextGenerator } from "../../Context/ContextGenerator";
 
 import { Server } from "../../Server";
-import { Type } from "../../Type";
 
 import { Socket } from "./Socket";
 import { SubscriptionController } from "./SubscriptionController";
@@ -34,23 +36,23 @@ export class SubscriptionHandler {
     private headers: http.IncomingHttpHeaders,
     private socket: Socket,
     private contextGenerator: ContextGenerator<ContextRecord> | null,
-    private message: WebSocket.RawData
+    private message: WebSocket.RawData,
   ) {}
 
   private async init(): Promise<void> {
-    let json: any;
+    let data: any;
 
     try {
-      json = JSON.parse(this.message.toString());
+      data = Tsion.decode(this.message.toString());
     } catch (error) {
       return;
     }
 
-    if (json === null || typeof json !== "object") {
+    if (!(data !== null && typeof data === "object" && !Array.isArray(data))) {
       return;
     }
 
-    const { subscriptionKey, endpoint: endpointObject } = json;
+    const { subscriptionKey, endpoint: endpointObject } = data;
 
     if (subscriptionKey === undefined || endpointObject === undefined) {
       return;
@@ -84,7 +86,9 @@ export class SubscriptionHandler {
 
     this.data.subscriptionKey = subscriptionKey;
 
-    if (typeof endpointObject !== "object") {
+    if (
+      !(typeof endpointObject === "object" && !Array.isArray(endpointObject))
+    ) {
       this.sendError(new Error("Endpoint field is not an object."));
 
       this.subscriptionController.destroy();
@@ -133,7 +137,12 @@ export class SubscriptionHandler {
 
       const params = endpointObject[endpointName];
 
-      if (params !== null && typeof params !== "object") {
+      if (
+        !(
+          params === null ||
+          (typeof params === "object" && !Array.isArray(params))
+        )
+      ) {
         throw new Error("Invalid params value.");
       }
 
@@ -145,15 +154,18 @@ export class SubscriptionHandler {
         throw new Error("Resolver not set.");
       }
 
-      Type.checkParams(subscriptionEndpoint.getParams(), params);
+      const parsedParams = ParseHelper.parseParams(
+        subscriptionEndpoint.getParams(),
+        params,
+      );
 
       this.subscriptionController.initialize(subscriptionEndpoint);
 
       this.subscriptionController.on("result", (value): void => {
         try {
-          const parsedValue = Type.parseResult(
+          const parsedValue = ParseHelper.parseResult(
             subscriptionEndpoint.getResult(),
-            value
+            value,
           );
 
           endpointResult.result = parsedValue;
@@ -171,7 +183,7 @@ export class SubscriptionHandler {
         request: this.request,
         headers: this.headers,
         context,
-        params,
+        params: parsedParams,
         subscription: this.subscriptionController.subscription!,
       });
 
@@ -194,9 +206,9 @@ export class SubscriptionHandler {
       return;
     }
 
-    const json = JSON.stringify(this.data);
+    const output = Tsion.encode(this.data);
 
-    this.connection.send(json);
+    this.connection.send(output);
   }
 
   private sendError(error: any): void {
@@ -216,7 +228,7 @@ export class SubscriptionHandler {
   }
 
   public static wrapListener(
-    server: Server<ContextManager<ContextRecord> | undefined>
+    server: Server<ContextManager<ContextRecord> | undefined>,
   ): (connection: WebSocket, request: http.IncomingMessage) => void {
     return (connection: WebSocket, request: http.IncomingMessage): void => {
       const socket = new Socket();
@@ -239,7 +251,7 @@ export class SubscriptionHandler {
         contextGenerator = new ContextGenerator(
           contextManager,
           request,
-          headers
+          headers,
         );
       }
 
@@ -251,7 +263,7 @@ export class SubscriptionHandler {
           headers,
           socket,
           contextGenerator,
-          message
+          message,
         );
 
         subscriptionHandler.init();

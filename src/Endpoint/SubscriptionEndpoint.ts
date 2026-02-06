@@ -2,27 +2,27 @@ import http from "node:http";
 
 import { EverEmitter } from "everemitter";
 
+import { Type, TypeSchema, InputType, InputSchema, OutputType } from "typebad";
+
 import { Subscription } from "../Handler/SubscriptionHandler/Subscription";
 
 import { ContextRecord } from "../Context/ContextManager";
-
-import { Type, TypeSchema, InferSchema, InferType } from "../Type";
 
 import { Endpoint } from "./Endpoint";
 
 export type SubscriptionEndpointResolver<
   K extends ContextRecord | null,
-  P extends TypeSchema | null
+  P extends TypeSchema | null,
 > = (value: {
   request: http.IncomingMessage;
   headers: http.IncomingHttpHeaders;
-  params: InferSchema<P>;
+  params: P extends TypeSchema ? OutputType<Type<InputSchema<P>>> : null;
   context: K;
   subscription: Subscription;
 }) => void;
 
 export type SubscriptionEndpointResult<R extends Type<any> | null> =
-  R extends Type<infer U> ? InferType<Type<U>> : null | undefined;
+  R extends Type<any> ? InputType<R> : null | undefined;
 
 type SubscriptionEndpointEmitterSignatures = Record<
   string,
@@ -32,7 +32,7 @@ type SubscriptionEndpointEmitterSignatures = Record<
 export class SubscriptionEndpoint<
   K extends ContextRecord | null,
   P extends TypeSchema | null,
-  R extends Type<any> | null
+  R extends Type<any> | null,
 > extends Endpoint<K, P, R> {
   public emitter: EverEmitter<SubscriptionEndpointEmitterSignatures> =
     new EverEmitter();
@@ -40,13 +40,13 @@ export class SubscriptionEndpoint<
   private resolver: SubscriptionEndpointResolver<K, P> | null = null;
 
   public setParams<D extends TypeSchema>(
-    params: D
+    params: D,
   ): SubscriptionEndpoint<K, D, R> {
     return super.setParams(params) as SubscriptionEndpoint<K, D, R>;
   }
 
   public setResult<D extends Type<any>>(
-    result: D
+    result: D,
   ): SubscriptionEndpoint<K, P, D> {
     return super.setResult(result) as SubscriptionEndpoint<K, P, D>;
   }
@@ -63,7 +63,7 @@ export class SubscriptionEndpoint<
 
   public publish(
     channelKey: string,
-    value: SubscriptionEndpointResult<R>
+    value: SubscriptionEndpointResult<R>,
   ): void {
     this.emitter.emit(channelKey, value);
   }
