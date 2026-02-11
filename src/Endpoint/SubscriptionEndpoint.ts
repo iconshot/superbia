@@ -2,7 +2,13 @@ import http from "node:http";
 
 import { EverEmitter } from "everemitter";
 
-import { Type, TypeSchema, InputType, InputSchema, OutputType } from "typebad";
+import {
+  Type,
+  TypeSchema,
+  TypeInternalSchema,
+  TypeInput,
+  TypeOutput,
+} from "typebad";
 
 import { Subscription } from "../Handler/SubscriptionHandler/Subscription";
 
@@ -16,13 +22,13 @@ export type SubscriptionEndpointResolver<
 > = (value: {
   request: http.IncomingMessage;
   headers: http.IncomingHttpHeaders;
-  params: P extends TypeSchema ? OutputType<Type<InputSchema<P>>> : null;
+  params: P extends TypeSchema ? TypeOutput<Type<TypeInternalSchema<P>>> : null;
   context: K;
   subscription: Subscription;
 }) => void;
 
 export type SubscriptionEndpointResult<R extends Type<any> | null> =
-  R extends Type<any> ? InputType<R> : null | undefined;
+  R extends Type<any> ? TypeInput<R> : null | undefined;
 
 type SubscriptionEndpointEmitterSignatures = Record<
   string,

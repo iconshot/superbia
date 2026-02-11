@@ -1,4 +1,10 @@
-import { InputSchema, InputType, Type, TypeSchema } from "typebad";
+import {
+  Type,
+  TypeSchema,
+  TypeInternal,
+  TypeInternalSchema,
+  ConstType,
+} from "typebad";
 
 import { Upload } from "./Upload";
 
@@ -6,17 +12,17 @@ export class Types {
   public static document<S extends TypeSchema>(
     typename: string,
     schema: S,
-  ): Type<InputSchema<S>> {
+  ): Type<TypeInternalSchema<S>> {
     return Type.object({
       ...schema,
       __typename__: Type.value(typename),
-    }) as any;
+    });
   }
 
   public static pagination<T extends Type<any>>(
     type: T,
   ): Type<{
-    nodes: InputType<T>[];
+    nodes: TypeInternal<T>[];
     hasNextPage: boolean;
     nextPageCursor: string | null;
   }> {
@@ -28,7 +34,7 @@ export class Types {
     });
   }
 
-  public static Upload: Type<Upload> = Type.match<Upload>(
+  public static Upload: Type<ConstType<Upload>> = Type.match<ConstType<Upload>>(
     (value): boolean => value instanceof Upload,
   );
 }

@@ -183,7 +183,7 @@ export class SubscriptionHandler {
         request: this.request,
         headers: this.headers,
         context,
-        params: parsedParams,
+        params: parsedParams as any,
         subscription: this.subscriptionController.subscription!,
       });
 

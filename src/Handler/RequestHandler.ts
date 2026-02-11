@@ -195,7 +195,7 @@ export class RequestHandler {
                 request: this.request,
                 headers,
                 context,
-                params: parsedParams,
+                params: parsedParams as any,
               });
 
               const parsedValue = ParseHelper.parseResult(

@@ -1,6 +1,12 @@
 import http from "node:http";
 
-import { InputSchema, InputType, OutputType, Type, TypeSchema } from "typebad";
+import {
+  Type,
+  TypeSchema,
+  TypeInternalSchema,
+  TypeInput,
+  TypeOutput,
+} from "typebad";
 
 import { ContextRecord } from "../Context/ContextManager";
 
@@ -13,12 +19,12 @@ export type RequestEndpointResolver<
 > = (value: {
   request: http.IncomingMessage;
   headers: http.IncomingHttpHeaders;
-  params: P extends TypeSchema ? OutputType<Type<InputSchema<P>>> : null;
+  params: P extends TypeSchema ? TypeOutput<Type<TypeInternalSchema<P>>> : null;
   context: K;
 }) => R extends Type<infer U>
   ? U extends undefined
-    ? InputType<R> | Promise<InputType<R>> | void | Promise<void>
-    : InputType<R> | Promise<InputType<R>>
+    ? TypeInput<R> | Promise<TypeInput<R>> | void | Promise<void>
+    : TypeInput<R> | Promise<TypeInput<R>>
   : null | undefined | void | Promise<null | undefined | void>;
 
 export class RequestEndpoint<

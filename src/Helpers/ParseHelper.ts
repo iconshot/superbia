@@ -20,7 +20,7 @@ export class ParseHelper {
     try {
       return Type.parse(Type.object(schema), params, {
         allowUnknownProperties: true,
-      });
+      }) as any;
     } catch (error: any) {
       throw new Error(`Invalid params value: ${error.message}`);
     }
