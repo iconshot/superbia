@@ -1,11 +1,11 @@
-import { Type, TypeSchema } from "typebad";
+import { Type, TypeObject } from "typebad";
 
 export class ParseHelper {
   public static parseParams(
-    schema: TypeSchema | null,
+    object: TypeObject | null,
     params: Record<string, any> | null,
   ): Record<string, any> | null {
-    if (schema === null) {
+    if (object === null) {
       if (params !== null) {
         throw new Error("Invalid params value.");
       }
@@ -18,7 +18,7 @@ export class ParseHelper {
     }
 
     try {
-      return Type.parse(Type.object(schema), params, {
+      return Type.parse(Type.object(object), params, {
         allowUnknownProperties: true,
       }) as any;
     } catch (error: any) {

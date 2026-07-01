@@ -4,8 +4,8 @@ import { EverEmitter } from "everemitter";
 
 import {
   Type,
-  TypeSchema,
-  TypeInternalSchema,
+  TypeObject,
+  TypeInternalObject,
   TypeInput,
   TypeOutput,
 } from "typebad";
@@ -18,11 +18,11 @@ import { Endpoint } from "./Endpoint";
 
 export type SubscriptionEndpointResolver<
   K extends ContextRecord | null,
-  P extends TypeSchema | null,
+  P extends TypeObject | null,
 > = (value: {
   request: http.IncomingMessage;
   headers: http.IncomingHttpHeaders;
-  params: P extends TypeSchema ? TypeOutput<Type<TypeInternalSchema<P>>> : null;
+  params: P extends TypeObject ? TypeOutput<Type<TypeInternalObject<P>>> : null;
   context: K;
   subscription: Subscription;
 }) => void;
@@ -37,7 +37,7 @@ type SubscriptionEndpointEmitterSignatures = Record<
 
 export class SubscriptionEndpoint<
   K extends ContextRecord | null,
-  P extends TypeSchema | null,
+  P extends TypeObject | null,
   R extends Type<any> | null,
 > extends Endpoint<K, P, R> {
   public emitter: EverEmitter<SubscriptionEndpointEmitterSignatures> =
@@ -45,7 +45,7 @@ export class SubscriptionEndpoint<
 
   private resolver: SubscriptionEndpointResolver<K, P> | null = null;
 
-  public setParams<D extends TypeSchema>(
+  public setParams<D extends TypeObject>(
     params: D,
   ): SubscriptionEndpoint<K, D, R> {
     return super.setParams(params) as SubscriptionEndpoint<K, D, R>;

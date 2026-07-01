@@ -1,20 +1,20 @@
 import {
   Type,
-  TypeSchema,
+  TypeObject,
   TypeInternal,
-  TypeInternalSchema,
+  TypeInternalObject,
   ConstType,
 } from "typebad";
 
 import { Upload } from "./Upload";
 
 export class Types {
-  public static document<S extends TypeSchema>(
+  public static document<O extends TypeObject>(
     typename: string,
-    schema: S,
-  ): Type<TypeInternalSchema<S>> {
+    object: O,
+  ): Type<TypeInternalObject<O>> {
     return Type.object({
-      ...schema,
+      ...object,
       __typename__: Type.value(typename),
     });
   }

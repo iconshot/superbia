@@ -1,6 +1,6 @@
 import http from "node:http";
 
-import { Type, TypeSchema } from "typebad";
+import { Type, TypeObject } from "typebad";
 
 import { WebSocketServer } from "ws";
 
@@ -21,12 +21,12 @@ export class Server<
 > {
   private requests: Map<
     string,
-    RequestEndpoint<InferContext<T>, TypeSchema | null, Type<any> | null>
+    RequestEndpoint<InferContext<T>, TypeObject | null, Type<any> | null>
   > = new Map();
 
   private subscriptions: Map<
     string,
-    SubscriptionEndpoint<InferContext<T>, TypeSchema | null, Type<any> | null>
+    SubscriptionEndpoint<InferContext<T>, TypeObject | null, Type<any> | null>
   > = new Map();
 
   constructor(private contextManager?: T) {}
@@ -37,7 +37,7 @@ export class Server<
 
   public getRequests(): Map<
     string,
-    RequestEndpoint<InferContext<T>, TypeSchema | null, Type<any> | null>
+    RequestEndpoint<InferContext<T>, TypeObject | null, Type<any> | null>
   > {
     return this.requests;
   }
@@ -45,7 +45,7 @@ export class Server<
   public getRequest(
     name: string,
   ):
-    | RequestEndpoint<InferContext<T>, TypeSchema | null, Type<any> | null>
+    | RequestEndpoint<InferContext<T>, TypeObject | null, Type<any> | null>
     | undefined {
     return this.requests.get(name);
   }
@@ -66,7 +66,7 @@ export class Server<
 
   public getSubscriptions(): Map<
     string,
-    SubscriptionEndpoint<InferContext<T>, TypeSchema | null, Type<any> | null>
+    SubscriptionEndpoint<InferContext<T>, TypeObject | null, Type<any> | null>
   > {
     return this.subscriptions;
   }
@@ -74,7 +74,7 @@ export class Server<
   public getSubscription(
     name: string,
   ):
-    | SubscriptionEndpoint<InferContext<T>, TypeSchema | null, Type<any> | null>
+    | SubscriptionEndpoint<InferContext<T>, TypeObject | null, Type<any> | null>
     | undefined {
     return this.subscriptions.get(name);
   }

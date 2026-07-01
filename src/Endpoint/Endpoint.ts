@@ -1,11 +1,11 @@
-import { Type, TypeSchema } from "typebad";
+import { Type, TypeObject } from "typebad";
 
 import { ContextRecord } from "../Context/ContextManager";
 
 export class Endpoint<
   K extends ContextRecord | null,
-  P extends TypeSchema | null,
-  R extends Type<any> | null
+  P extends TypeObject | null,
+  R extends Type<any> | null,
 > {
   protected params: P | null = null;
   protected result: R | null = null;
@@ -14,7 +14,7 @@ export class Endpoint<
     return this.params;
   }
 
-  public setParams<D extends TypeSchema>(params: D): Endpoint<K, D, R> {
+  public setParams<D extends TypeObject>(params: D): Endpoint<K, D, R> {
     const self = this as any;
 
     self.params = params;

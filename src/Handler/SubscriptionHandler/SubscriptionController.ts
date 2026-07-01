@@ -1,6 +1,6 @@
 import { EverEmitter } from "everemitter";
 
-import { Type, TypeSchema } from "typebad";
+import { Type, TypeObject } from "typebad";
 
 import { SubscriptionEndpoint } from "../../Endpoint/SubscriptionEndpoint";
 
@@ -24,7 +24,7 @@ export class SubscriptionController extends EverEmitter<SubscriptionControllerSi
 
   private subscriptionEndpoint: SubscriptionEndpoint<
     ContextRecord | null,
-    TypeSchema | null,
+    TypeObject | null,
     Type<any> | null
   > | null = null;
 
@@ -48,7 +48,7 @@ export class SubscriptionController extends EverEmitter<SubscriptionControllerSi
   public initialize(
     subscriptionEndpoint: SubscriptionEndpoint<
       ContextRecord | null,
-      TypeSchema | null,
+      TypeObject | null,
       Type<any> | null
     >,
   ): void {
