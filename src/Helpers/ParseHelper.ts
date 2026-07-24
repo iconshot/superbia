@@ -18,9 +18,10 @@ export class ParseHelper {
     }
 
     try {
-      return Type.parse(Type.object(object), params, {
-        allowUnknownProperties: true,
-      }) as any;
+      return Type.parse(
+        Type.object(object, { ignoreUnknownProperties: true }),
+        params,
+      ) as any;
     } catch (error: any) {
       throw new Error(`Invalid params value: ${error.message}`);
     }
