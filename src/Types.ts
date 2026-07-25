@@ -13,10 +13,13 @@ export class Types {
     typename: string,
     object: O,
   ): Type<TypeInternalObject<O>> {
-    return Type.object({
-      ...object,
-      __typename__: Type.value(typename),
-    });
+    return Type.object(
+      {
+        ...object,
+        __typename__: Type.value(typename),
+      },
+      { ignoreUnknownProperties: true },
+    );
   }
 
   public static pagination<T extends Type<any>>(
