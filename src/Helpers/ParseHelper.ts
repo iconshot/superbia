@@ -18,7 +18,7 @@ export class ParseHelper {
     }
 
     try {
-      return Type.parse(
+      return Type.validate(
         Type.object(object, { ignoreUnknownProperties: true }),
         params,
       ) as any;
@@ -37,7 +37,7 @@ export class ParseHelper {
     }
 
     try {
-      return Type.parse(type as Type<unknown>, value);
+      return Type.validate(type as Type<unknown>, value);
     } catch (error: any) {
       throw new Error(`Invalid result value: ${error.message}`);
     }
